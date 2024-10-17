@@ -3,7 +3,8 @@ import re
 class ExpressionProcessor:
     def __init__(self):
         self.valid_operators = set("+-*/")
-
+        self.precedence = {'+': 1, '-': 1, '*': 2, '/': 2}
+    
     def is_valid_expression(self, expression):
         # Удаление пробелов
         expression = expression.replace(" ", "")
@@ -29,8 +30,42 @@ class ExpressionProcessor:
     def evaluate(self, expression):
         if not self.is_valid_expression(expression):
             raise ValueError("Invalid expression")
-        return eval(expression)
+        
+        values = []  # Стек для чисел
+        operators = []  # Стек для операторов
+        tokens = re.findall(r'\d+|[-+*/()]', expression)  # Разделение на токены
+        
+        for token in tokens:
+            if token.isdigit():  # Если токен - число
+                values.append(int(token))
+            elif token in self.valid_operators:  # Если токен - оператор
+                while (operators and operators[-1] != '(' and
+                       self.precedence[token] <= self.precedence[operators[-1]]):
+                    self.apply_operator(values, operators.pop())
+                operators.append(token)
+            elif token == '(':
+                operators.append(token)
+            elif token == ')':
+                while operators and operators[-1] != '(':
+                    self.apply_operator(values, operators.pop())
+                operators.pop()  # Удаляем '(' из стека
+        
+        while operators:
+            self.apply_operator(values, operators.pop())
+        
+        return values[0]
 
+    def apply_operator(self, values, operator):
+        b = values.pop()
+        a = values.pop()
+        if operator == '+':
+            values.append(a + b)
+        elif operator == '-':
+            values.append(a - b)
+        elif operator == '*':
+            values.append(a * b)
+        elif operator == '/':
+            values.append(a / b)
 
 def run_tests():
     processor = ExpressionProcessor()
